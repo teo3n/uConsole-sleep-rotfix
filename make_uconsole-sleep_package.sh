@@ -315,7 +315,7 @@ Original-Maintainer: paragonnov (github.com/qkdxorjs1002)
 Architecture: all
 Description: uConsole Sleep control scripts.
  Source-Path: /usr/local/src/uconsole-sleep
- Source-Site: https://gist.github.com/qkdxorjs1002/7119ac7b5fe4cd10fbb3ed4dd6be6d55
+ Source-Site: https://github.com/qkdxorjs1002/uConsole-sleep
 EOF
 
 
