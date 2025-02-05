@@ -156,13 +156,9 @@ from sleep_display_control import toggle_display
 
 EVENT_DEVICE = "/dev/input/event0"
 KEY_POWER = 116
-KEY_WAKEUP = 143
 
-EVENT_FORMAT = "qqHHi"  # timeval (sec, usec) + type + code + value
-EVENT_SIZE = struct.calcsize(EVENT_FORMAT)
-
-with open(EVENT_DEVICE, "rb") as f, open(EVENT_DEVICE, "wb") as wf:
-    fcntl.ioctl(f, 0x40044590, 1)  # EVIOCGRAB
+with open(EVENT_DEVICE, "rb") as f:
+    fcntl.ioctl(f, 0x40044590, 1)
 
     epoll = select.epoll()
     epoll.register(f.fileno(), select.EPOLLIN)
@@ -173,19 +169,15 @@ with open(EVENT_DEVICE, "rb") as f, open(EVENT_DEVICE, "wb") as wf:
 
             for fileno, event in events:
                 if fileno == f.fileno():
-                    event_data = f.read(EVENT_SIZE)
+                    event_data = f.read(24)
                     if not event_data:
                         break
 
-                    sec, usec, event_type, code, value = struct.unpack(EVENT_FORMAT, event_data)
+                    sec, usec, event_type, code, value = struct.unpack("qqHHi", event_data)
 
                     if event_type == 1 and code == KEY_POWER and value == 0:
                         print(f"SRP: power key input detected.")
                         toggle_display()
-
-                        new_event = struct.pack(EVENT_FORMAT, sec, usec, event_type, KEY_WAKEUP, value)
-                        wf.write(new_event)
-                        wf.flush()
 
     finally:
         epoll.unregister(f.fileno())
