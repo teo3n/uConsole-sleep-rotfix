@@ -93,27 +93,43 @@ EOF
 
 cat << 'EOF' > uconsole-sleep/usr/local/src/uconsole-sleep/sleep_display_control.py
 import os
+import stat
+import uinput
 # from find_drm_panel import find_drm_panel
 from find_framebuffer import find_framebuffer
 from find_backlight import find_backlight
 
 
+# drm_panel_path = find_drm_panel()
+framebuffer_path = find_framebuffer()
+backlight_path = find_backlight()
+
+# if not drm_panel_path:
+#     raise Exception("there's no matched drm panel")
+#     return
+
+if not framebuffer_path:
+    raise Exception("there's no matched framebuffer")
+
+if not backlight_path:
+    raise Exception("there's no matched backlight")
+
+uinput_path = "/dev/uinput"
+if not os.path.exists(uinput_path):
+    raise FileNotFoundError(f"{file_path} 파일이 존재하지 않습니다.")
+
+os.chmod(uinput_path, stat.S_IEXEC | stat.S_IRUSR | stat.S_IWUSR)
+
+uinput_device = uinput.Device([uinput.KEY_SLEEP, uinput.KEY_WAKEUP])
+
+status_path = os.path.join(backlight_path, "bl_power")
+
 def toggle_display():
-    # drm_panel_path = find_drm_panel()
-    framebuffer_path = find_framebuffer()
-    backlight_path = find_backlight()
-
-    # if not drm_panel_path:
-    #     raise Exception("there's no matched drm panel")
-    #     return
-
-    if not framebuffer_path:
-        raise Exception("there's no matched framebuffer")
-
-    if not backlight_path:
-        raise Exception("there's no matched backlight")
-
-    status_path = os.path.join(backlight_path, "bl_power")
+    # global drm_panel_path
+    global framebuffer_path
+    global backlight_path
+    global uinput_device
+    global status_path
 
     try:
         with open(status_path, "r") as f:
@@ -127,6 +143,7 @@ def toggle_display():
                 f.write("0")
             # with open(os.path.join(drm_panel_path, "status"), "w") as f:
             #     f.write("on")
+            uinput_device.emit_click(uinput.KEY_WAKEUP)
         else:
             #off
             # with open(os.path.join(drm_panel_path, "status"), "w") as f:
@@ -309,7 +326,7 @@ EOF
 
 cat << 'EOF' > uconsole-sleep/DEBIAN/control
 Package: uconsole-sleep
-Version: 0.2
+Version: 0.3
 Maintainer: paragonnov (github.com/qkdxorjs1002)
 Original-Maintainer: paragonnov (github.com/qkdxorjs1002)
 Architecture: all
@@ -353,14 +370,15 @@ python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --no-cache-dir pyinstaller
 python3 -m pip install --no-cache-dir "inotify-simple>=1.3.0"
+python3 -m pip install --no-cache-dir "python-uinput>=1.0.0"
 
 pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_backlight.py
 pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_drm_panel.py
 pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_framebuffer.py
 pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_internal_kb.py
-pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/sleep_display_control.py
+pyinstaller -F --hidden-import=_libsuinput --distpath usr/local/bin/ usr/local/src/uconsole-sleep/sleep_display_control.py
 pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/sleep_power_control.py
-pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/sleep_remap_powerkey.py
+pyinstaller -F --hidden-import=_libsuinput --distpath usr/local/bin/ usr/local/src/uconsole-sleep/sleep_remap_powerkey.py
 
 chmod +x usr/local/bin/*
 chmod +x DEBIAN/*
