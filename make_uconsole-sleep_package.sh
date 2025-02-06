@@ -94,18 +94,17 @@ EOF
 cat << 'EOF' > uconsole-sleep/usr/local/src/uconsole-sleep/sleep_display_control.py
 import os
 import uinput
-# from find_drm_panel import find_drm_panel
+from find_drm_panel import find_drm_panel
 from find_framebuffer import find_framebuffer
 from find_backlight import find_backlight
 
 
-# drm_panel_path = find_drm_panel()
+drm_panel_path = find_drm_panel()
 framebuffer_path = find_framebuffer()
 backlight_path = find_backlight()
 
-# if not drm_panel_path:
-#     raise Exception("there's no matched drm panel")
-#     return
+if not drm_panel_path:
+    raise Exception("there's no matched drm panel")
 
 if not framebuffer_path:
     raise Exception("there's no matched framebuffer")
@@ -122,7 +121,7 @@ uinput_device = uinput.Device([uinput.KEY_SLEEP, uinput.KEY_WAKEUP])
 status_path = os.path.join(backlight_path, "bl_power")
 
 def toggle_display():
-    # global drm_panel_path
+    global drm_panel_path
     global framebuffer_path
     global backlight_path
     global uinput_device
@@ -138,13 +137,13 @@ def toggle_display():
                 f.write("0")
             with open(os.path.join(backlight_path, "bl_power"), "w") as f:
                 f.write("0")
-            # with open(os.path.join(drm_panel_path, "status"), "w") as f:
-            #     f.write("on")
+            with open(os.path.join(drm_panel_path, "status"), "w") as f:
+                f.write("on")
             uinput_device.emit_click(uinput.KEY_WAKEUP)
         else:
             #off
-            # with open(os.path.join(drm_panel_path, "status"), "w") as f:
-            #     f.write("off")
+            with open(os.path.join(drm_panel_path, "status"), "w") as f:
+                f.write("off")
             with open(os.path.join(framebuffer_path, "blank"), "w") as f:
                 f.write("1")
             with open(os.path.join(backlight_path, "bl_power"), "w") as f:
@@ -166,10 +165,13 @@ import os
 import fcntl
 import select
 import time
+
 from sleep_display_control import toggle_display
+
 
 EVENT_DEVICE = "/dev/input/event0"
 KEY_POWER = 116
+
 
 with open(EVENT_DEVICE, "rb") as f:
     fcntl.ioctl(f, 0x40044590, 1)
@@ -290,7 +292,7 @@ EOF
 cat << 'EOF' > uconsole-sleep/etc/systemd/system/sleep-power-control.service
 [Unit]
 Description=Sleep Power Control Based on Display and Sleep State
-After=multi-user.target
+After=basic.target
 
 [Service]
 ExecStart=/usr/local/bin/sleep_power_control
@@ -301,13 +303,13 @@ StandardOutput=journal
 StandardError=journal
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=basic.target
 EOF
 
 cat << 'EOF' > uconsole-sleep/etc/systemd/system/sleep-remap-powerkey.service
 [Unit]
 Description=Sleep Remap PowerKey
-After=multi-user.target
+After=basic.target
 
 [Service]
 ExecStartPre=/sbin/modprobe uinput
@@ -319,7 +321,7 @@ StandardOutput=journal
 StandardError=journal
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=basic.target
 EOF
 
 cat << 'EOF' > uconsole-sleep/DEBIAN/control
