@@ -93,7 +93,6 @@ EOF
 
 cat << 'EOF' > uconsole-sleep/usr/local/src/uconsole-sleep/sleep_display_control.py
 import os
-import stat
 import uinput
 # from find_drm_panel import find_drm_panel
 from find_framebuffer import find_framebuffer
@@ -117,8 +116,6 @@ if not backlight_path:
 uinput_path = "/dev/uinput"
 if not os.path.exists(uinput_path):
     raise FileNotFoundError(f"{file_path} 파일이 존재하지 않습니다.")
-
-os.chmod(uinput_path, stat.S_IEXEC | stat.S_IRUSR | stat.S_IWUSR)
 
 uinput_device = uinput.Device([uinput.KEY_SLEEP, uinput.KEY_WAKEUP])
 
@@ -148,10 +145,10 @@ def toggle_display():
             #off
             # with open(os.path.join(drm_panel_path, "status"), "w") as f:
             #     f.write("off")
-            with open(os.path.join(backlight_path, "bl_power"), "w") as f:
-                f.write("4")
             with open(os.path.join(framebuffer_path, "blank"), "w") as f:
                 f.write("1")
+            with open(os.path.join(backlight_path, "bl_power"), "w") as f:
+                f.write("4")
 
         print(f"panel status: {screen_state} to {'0' if screen_state == '4' else '4'}")
 
@@ -313,6 +310,7 @@ Description=Sleep Remap PowerKey
 After=multi-user.target
 
 [Service]
+ExecPre=/sbin/modprobe uinput && echo "uinput module loaded successfully"
 ExecStart=/usr/local/bin/sleep_remap_powerkey
 Restart=always
 User=root
