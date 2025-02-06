@@ -310,7 +310,7 @@ Description=Sleep Remap PowerKey
 After=multi-user.target
 
 [Service]
-ExecPre=/sbin/modprobe uinput && echo "uinput module loaded successfully"
+ExecStartPre=/sbin/modprobe uinput
 ExecStart=/usr/local/bin/sleep_remap_powerkey
 Restart=always
 User=root
