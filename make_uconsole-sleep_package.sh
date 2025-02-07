@@ -382,11 +382,11 @@ python3 -m pip install --no-cache-dir pyinstaller
 python3 -m pip install --no-cache-dir "inotify-simple>=1.3.0"
 python3 -m pip install --no-cache-dir "python-uinput>=1.0.0"
 
-pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_backlight.py
-pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_drm_panel.py
-pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_framebuffer.py
-pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_internal_kb.py
-pyinstaller -F --hidden-import=_libsuinput --distpath usr/local/bin/ usr/local/src/uconsole-sleep/sleep_display_control.py
+#pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_backlight.py
+#pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_drm_panel.py
+#pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_framebuffer.py
+#pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/find_internal_kb.py
+#pyinstaller -F --hidden-import=_libsuinput --distpath usr/local/bin/ usr/local/src/uconsole-sleep/sleep_display_control.py
 pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/sleep_power_control.py
 pyinstaller -F --hidden-import=_libsuinput --distpath usr/local/bin/ usr/local/src/uconsole-sleep/sleep_remap_powerkey.py
 
