@@ -138,7 +138,7 @@ def toggle_display():
             with open(os.path.join(backlight_path, "bl_power"), "w") as f:
                 f.write("0")
             with open(os.path.join(drm_panel_path, "status"), "w") as f:
-                f.write("on")
+                f.write("detect")
             uinput_device.emit_click(uinput.KEY_WAKEUP)
         else:
             #off
