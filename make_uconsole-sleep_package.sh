@@ -65,7 +65,7 @@ cat << 'EOF' > uconsole-sleep/usr/local/src/uconsole-sleep/find_internal_kb.py
 import os
 
 
-def find_internal_kb(vendor_id="feed", product_id="0000"):
+def find_internal_kb(ids=["feed:0000", "1eaf:0003"]):
     usb_device_path = ""
 
     for device in os.listdir("/sys/bus/usb/devices/"):
@@ -80,7 +80,7 @@ def find_internal_kb(vendor_id="feed", product_id="0000"):
             with open(product_path, "r") as f:
                 pid = f.read().strip()
 
-            if vid == vendor_id and pid == product_id:
+            if f"{vid}:{pid}" in ids:
                 usb_device_path = device_path
                 break
 
