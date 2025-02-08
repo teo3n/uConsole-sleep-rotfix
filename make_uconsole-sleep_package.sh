@@ -204,8 +204,8 @@ cat << 'EOF' > uconsole-sleep/usr/local/src/uconsole-sleep/sleep_power_control.p
 import os
 import time
 from inotify_simple import INotify, flags
-from find_drm_panel import find_drm_panel
-#from find_backlight import find_backlight
+#from find_drm_panel import find_drm_panel
+from find_backlight import find_backlight
 from find_internal_kb import find_internal_kb
 
 
@@ -237,8 +237,8 @@ def control_by_state(state):
         print(f"cpu freq max: {default_cpu_freq_min}")
 
 
-#backlight_path = find_backlight()
-drm_panel_path = find_drm_panel()
+backlight_path = find_backlight()
+#drm_panel_path = find_drm_panel()
 kb_device_path = find_internal_kb()
 kb_device_id = os.path.basename(kb_device_path)
 usb_driver_path = "/sys/bus/usb/drivers/usb"
@@ -247,8 +247,8 @@ cpu_policy_path = "/sys/devices/system/cpu/cpufreq/policy0"
 if not backlight_path:
     raise Exception("there's no matched backlight")
 
-if not drm_panel_path:
-    raise Exception("there's no matched drm panel")
+#if not drm_panel_path:
+#    raise Exception("there's no matched drm panel")
 
 if not kb_device_path:
     raise Exception("there's no matched kb")
@@ -265,33 +265,43 @@ with open(os.path.join(cpu_policy_path, "cpuinfo_min_freq"), "r") as f:
     default_cpu_freq_min = f.read().strip()
     print(f"default_cpu_freq_min: {default_cpu_freq_min}")
 
-#backlight_bl_path = os.path.join(backlight_path, "bl_power")
-#with open(backlight_bl_path, "r") as f:
-#    screen_state = f.read().strip()
-
-drm_enabled_path = os.path.join(drm_panel_path, "enabled")
-with open(drm_enabled_path, "r") as f:
+backlight_bl_path = os.path.join(backlight_path, "bl_power")
+with open(backlight_bl_path, "r") as f:
     screen_state = f.read().strip()
 
+#drm_enabled_path = os.path.join(drm_panel_path, "enabled")
+#with open(drm_enabled_path, "r") as f:
+#    screen_state = f.read().strip()
+
 try:
-#    control_by_state(screen_state != "4")
-    control_by_state(screen_state != "disabled")
+    control_by_state(screen_state != "4")
+#    control_by_state(screen_state != "disabled")
 except Exception as e:
     print(f"Error occurred: {e}, on init. ignored")
 
 inotify = INotify()
-watch_flags = flags.MODIFY | flags.CLOSE_WRITE | flags.ATTRIB
+watch_flags = flags.MODIFY
 inotify.add_watch(backlight_bl_path, watch_flags)
 
 print(f"Monitoring {backlight_bl_path} for changes...")
 
+last_screen_state = ""
 while True:
     try:
-        for event in inotify.read():
-            if event.mask & (flags.MODIFY | flags.CLOSE_WRITE | flags.ATTRIB):
-                with open(backlight_bl_path, "r") as f:
-                    screen_state = f.read().strip()
-                control_by_state(screen_state != "4")
+        events = inotify.read(1000)
+
+        event_occured = False
+        for event in events:
+            event_occured = True
+
+        with open(backlight_bl_path, "r") as f:
+            screen_state = f.read().strip()
+        last_screen_state = screen_state
+
+        if not event_occured and screen_state == last_screen_state:
+            continue
+
+        control_by_state(screen_state != "4")
 
     except Exception as e:
         print(f"Error occurred: {e}")
