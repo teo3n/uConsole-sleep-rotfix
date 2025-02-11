@@ -296,9 +296,10 @@ while True:
 
         with open(backlight_bl_path, "r") as f:
             screen_state = f.read().strip()
+        event_occured = screen_state != last_screen_state
         last_screen_state = screen_state
 
-        if not event_occured and screen_state == last_screen_state:
+        if not event_occured:
             continue
 
         control_by_state(screen_state != "4")
