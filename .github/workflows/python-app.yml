@@ -24,14 +24,14 @@ jobs:
           ./make_uconsole-sleep_package.sh
           ls -la
     - name: Upload the image artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4.6.0
       with:
         name: uconsole-sleep.deb
         path: uconsole-sleep.deb
         if-no-files-found: error
         retention-days: 1
     - name: Download the image artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4.1.8
     - name: Upload package to release (live)
       if: startsWith(github.ref, 'refs/heads/')
       uses: svenstaro/upload-release-action@v2
