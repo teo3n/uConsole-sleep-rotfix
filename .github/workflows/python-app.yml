@@ -30,6 +30,8 @@ jobs:
         path: uconsole-sleep.deb
         if-no-files-found: error
         retention-days: 1
+    - name: Download the image artifacts
+      uses: actions/download-artifact@v3
     - name: Upload package to release (live)
       if: startsWith(github.ref, 'refs/heads/')
       uses: svenstaro/upload-release-action@v2
