@@ -347,7 +347,7 @@ EOF
 
 cat << 'EOF' > uconsole-sleep/DEBIAN/control
 Package: uconsole-sleep
-Version: 0.4
+Version: ENV_VERSION
 Maintainer: paragonnov (github.com/qkdxorjs1002)
 Original-Maintainer: paragonnov (github.com/qkdxorjs1002)
 Architecture: all
