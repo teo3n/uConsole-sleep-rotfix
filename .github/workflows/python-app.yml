@@ -20,12 +20,14 @@ jobs:
       run: |
         sed  's/ENV_VERSION/$ENV_VERSION/g' make_uconsole-sleep_package.sh
         ./make_uconsole-sleep_package.sh
+        ls -la ..
+        ls -la
     - name: Upload package to release
       uses: svenstaro/upload-release-action@v2
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ./uconsole-sleep.deb
+        repo_token: ${{ secrets.REPO_TOKEN }}
+        file: uconsole-sleep.deb
         asset_name: ${{ github.ref }}
         tag: ${{ github.ref }}
         overwrite: true
-        body: "Live build"
+        prerelease: true
