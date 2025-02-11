@@ -10,27 +10,46 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
+    - uses: actions/checkout@v4\
+    - name: Build package (live)
+      uses: pguyot/arm-runner-action@v2
       with:
-        python-version: "3.10"
+        image_additional_mb: 1024
+        base_image: raspios_lite_arm64:latest
+        cpu: cpuinfo/raspberrypi_4b
+        commands: |
+          ENV_VERSION=0
+          sed -i "s|ENV_VERSION|$ENV_VERSION|g" make_uconsole-sleep_package.sh
+          ./make_uconsole-sleep_package.sh
+          ls -la ..
+          ls -la
+    - name: Upload package to release (live)
+      if: startsWith(github.ref, 'refs/heads/')
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.REPO_TOKEN }}
+        file: uconsole-sleep.deb
+        asset_name: uconsole-sleep-live.deb
+        tag: live
+        overwrite: true
+        prerelease: true
     - name: Build package
+      if: startsWith(github.ref, 'refs/tags/')
       env:
         ENV_VERSION: ${{ github.ref }}
       run: |
         ENV_VERSION=$(echo $ENV_VERSION | sed 's|refs/tags/v||g')
-        ENV_VERSION=$(echo $ENV_VERSION | sed 's|refs/heads/.*|0|g')
         sed -i "s|ENV_VERSION|$ENV_VERSION|g" make_uconsole-sleep_package.sh
         ./make_uconsole-sleep_package.sh
         ls -la ..
         ls -la
     - name: Upload package to release
+      if: startsWith(github.ref, 'refs/tags/')
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.REPO_TOKEN }}
         file: uconsole-sleep.deb
-        asset_name: ${{ github.ref }}
+        asset_name: uconsole-sleep.deb
         tag: ${{ github.ref }}
         overwrite: true
-        prerelease: true
+        draft: true
