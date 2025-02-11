@@ -19,7 +19,9 @@ jobs:
       env:
         ENV_VERSION: ${{ github.ref }}
       run: |
-        sed -i "s|ENV_VERSION|$(echo $ENV_VERSION | sed 's|refs/tags/v\|refs/heads/||g')|g" make_uconsole-sleep_package.sh
+        ENV_VERSION=$(echo $ENV_VERSION | sed 's|refs/tags/v||g')
+        ENV_VERSION=$(echo $ENV_VERSION | sed 's|refs/heads/.*|0|g')
+        sed -i "s|ENV_VERSION|$ENV_VERSION|g" make_uconsole-sleep_package.sh
         ./make_uconsole-sleep_package.sh
         ls -la ..
         ls -la
