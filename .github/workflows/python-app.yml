@@ -12,26 +12,20 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build package (live)
+      if: startsWith(github.ref, 'refs/heads/')
       uses: pguyot/arm-runner-action@v2
       with:
         image_additional_mb: 1024
         base_image: raspios_lite_arm64:latest
         cpu: cortex-a7
         cpu_info: cpuinfo/raspberrypi_4b
+        copy_artifact_path: uconsole-sleep.deb
         commands: |
           ENV_VERSION=0
           sed -i "s|ENV_VERSION|$ENV_VERSION|g" make_uconsole-sleep_package.sh
           ./make_uconsole-sleep_package.sh
+          pwd
           ls -la
-    - name: Upload the image artifact
-      uses: actions/upload-artifact@v4.6.0
-      with:
-        name: uconsole-sleep.deb
-        path: uconsole-sleep.deb
-        if-no-files-found: error
-        retention-days: 1
-    - name: Download the image artifacts
-      uses: actions/download-artifact@v4.1.8
     - name: Upload package to release (live)
       if: startsWith(github.ref, 'refs/heads/')
       uses: svenstaro/upload-release-action@v2
@@ -44,14 +38,19 @@ jobs:
         prerelease: true
     - name: Build package
       if: startsWith(github.ref, 'refs/tags/')
-      env:
-        ENV_VERSION: ${{ github.ref }}
-      run: |
-        ENV_VERSION=$(echo $ENV_VERSION | sed 's|refs/tags/v||g')
-        sed -i "s|ENV_VERSION|$ENV_VERSION|g" make_uconsole-sleep_package.sh
-        ./make_uconsole-sleep_package.sh
-        ls -la ..
-        ls -la
+      uses: pguyot/arm-runner-action@v2
+      with:
+        image_additional_mb: 1024
+        base_image: raspios_lite_arm64:latest
+        cpu: cortex-a7
+        cpu_info: cpuinfo/raspberrypi_4b
+        copy_artifact_path: uconsole-sleep.deb
+        commands: |
+          ENV_VERSION=$(echo $ENV_VERSION | sed 's|refs/tags/v||g')
+          sed -i "s|ENV_VERSION|$ENV_VERSION|g" make_uconsole-sleep_package.sh
+          ./make_uconsole-sleep_package.sh
+          pwd
+          ls -la
     - name: Upload package to release
       if: startsWith(github.ref, 'refs/tags/')
       uses: svenstaro/upload-release-action@v2
