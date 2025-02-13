@@ -164,13 +164,21 @@ import struct
 import os
 import fcntl
 import select
-import time
+import uinput
+import threading
+from time import time
 
 from sleep_display_control import toggle_display
 
 
 EVENT_DEVICE = "/dev/input/event0"
 KEY_POWER = 116
+HOLD_TRIGGER_SEC = 0.7
+
+
+def timer_input_power_task(device):
+    device.emit(uinput.KEY_POWER, 1)
+    device.emit(uinput.KEY_POWER, 0)
 
 
 with open(EVENT_DEVICE, "rb") as f:
@@ -179,10 +187,15 @@ with open(EVENT_DEVICE, "rb") as f:
     epoll = select.epoll()
     epoll.register(f.fileno(), select.EPOLLIN)
 
+    uinput_device = uinput.Device([uinput.KEY_POWER])
+
     try:
+        last_key_down_timestamp = 0
+        input_power_timer = None
+
         while True:
             events = epoll.poll()
-
+            current_time = time()
             for fileno, event in events:
                 if fileno == f.fileno():
                     event_data = f.read(24)
@@ -191,9 +204,17 @@ with open(EVENT_DEVICE, "rb") as f:
 
                     sec, usec, event_type, code, value = struct.unpack("qqHHi", event_data)
 
-                    if event_type == 1 and code == KEY_POWER and value == 0:
-                        print(f"SRP: power key input detected.")
-                        toggle_display()
+                    if event_type == 1 and code == KEY_POWER:
+                        if value == 1:
+                            print(f"SRP: power key down input detected.")
+                            last_key_down_timestamp = current_time
+                            input_power_timer = threading.Timer(HOLD_TRIGGER_SEC, timer_input_power_task, args=(uinput_device,))
+                            input_power_timer.start()
+                        else:
+                            print(f"SRP: power key up input detected.")
+                            if input_power_timer != None and (current_time - last_key_down_timestamp) < HOLD_TRIGGER_SEC:
+                                input_power_timer.cancel()
+                                toggle_display()
 
     finally:
         epoll.unregister(f.fileno())
@@ -356,6 +377,7 @@ Description: uConsole Sleep control scripts.
  Source-Site: https://github.com/qkdxorjs1002/uConsole-sleep
 EOF
 
+sed -i "s|ENV_VERSION|$ENV_VERSION|g" uconsole-sleep/DEBIAN/control
 
 cat << 'EOF' > uconsole-sleep/DEBIAN/postinst
 #!/bin/bash
