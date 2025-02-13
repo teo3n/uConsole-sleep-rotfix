@@ -15,7 +15,7 @@ jobs:
       if: startsWith(github.ref, 'refs/heads/')
       uses: pguyot/arm-runner-action@v2
       env:
-        ENV_VERSION: ${{ github.ref }}
+        ENV_VERSION: 0
       with:
         image_additional_mb: 1024
         base_image: raspios_lite_arm64:latest
@@ -23,8 +23,6 @@ jobs:
         cpu_info: cpuinfo/raspberrypi_4b
         copy_artifact_path: uconsole-sleep.deb
         commands: |
-          ENV_VERSION=0
-          sed -i "s|ENV_VERSION|$ENV_VERSION|g" make_uconsole-sleep_package.sh
           ./make_uconsole-sleep_package.sh
           pwd
           ls -la
@@ -51,7 +49,6 @@ jobs:
         copy_artifact_path: uconsole-sleep.deb
         commands: |
           ENV_VERSION=$(echo $ENV_VERSION | sed 's|refs/tags/v||g')
-          sed -i "s|ENV_VERSION|$ENV_VERSION|g" make_uconsole-sleep_package.sh
           ./make_uconsole-sleep_package.sh
           pwd
           ls -la
