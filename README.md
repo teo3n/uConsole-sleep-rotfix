@@ -20,3 +20,6 @@ Detects power key events and controls the screen power.
 * **sleep-power-control**
 `/usr/local/bin/sleep_power_control`
 Manages power-saving operations based on screen status.
+
+**More Details**
+https://forum.clockworkpi.com/t/uconsole-sleep-v1-0
