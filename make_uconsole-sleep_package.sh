@@ -3,6 +3,7 @@
 mkdir -p uconsole-sleep/DEBIAN
 mkdir -p uconsole-sleep/usr/local/bin
 mkdir -p uconsole-sleep/usr/local/src/uconsole-sleep
+mkdir -p uconsole-sleep/etc/uconsole-sleep
 mkdir -p uconsole-sleep/etc/systemd/system
 
 cat << 'EOF' > uconsole-sleep/usr/local/src/uconsole-sleep/README
@@ -99,6 +100,8 @@ from find_framebuffer import find_framebuffer
 from find_backlight import find_backlight
 
 
+DISABLE_POWER_OFF_DRM = os.environ.get("DISABLE_POWER_OFF_DRM") == "yes"
+
 drm_panel_path = find_drm_panel()
 framebuffer_path = find_framebuffer()
 backlight_path = find_backlight()
@@ -137,13 +140,15 @@ def toggle_display():
                 f.write("0")
             with open(os.path.join(backlight_path, "bl_power"), "w") as f:
                 f.write("0")
-            with open(os.path.join(drm_panel_path, "status"), "w") as f:
-                f.write("detect")
+            if not DISABLE_POWER_OFF_DRM:
+                with open(os.path.join(drm_panel_path, "status"), "w") as f:
+                    f.write("detect")
             uinput_device.emit_click(uinput.KEY_WAKEUP)
         else:
             #off
-            with open(os.path.join(drm_panel_path, "status"), "w") as f:
-                f.write("off")
+            if not DISABLE_POWER_OFF_DRM:
+                with open(os.path.join(drm_panel_path, "status"), "w") as f:
+                    f.write("off")
             with open(os.path.join(framebuffer_path, "blank"), "w") as f:
                 f.write("1")
             with open(os.path.join(backlight_path, "bl_power"), "w") as f:
@@ -173,7 +178,7 @@ from sleep_display_control import toggle_display
 
 EVENT_DEVICE = "/dev/input/event0"
 KEY_POWER = 116
-HOLD_TRIGGER_SEC = 0.7
+HOLD_TRIGGER_SEC = float(os.environ.get("HOLD_TRIGGER_SEC") or 0.7)
 
 
 def timer_input_power_task(device):
@@ -229,6 +234,9 @@ from inotify_simple import INotify, flags
 from find_backlight import find_backlight
 from find_internal_kb import find_internal_kb
 
+SAVING_CPU_FREQ = os.environ.get("SAVING_CPU_FREQ")
+DISABLE_POWER_OFF_KB = os.environ.get("DISABLE_POWER_OFF_KB") == "yes"
+DISABLE_CPU_MIN_FREQ = os.environ.get("DISABLE_CPU_MIN_FREQ") == "yes"
 
 def control_by_state(state):
     global kb_device_path
@@ -237,25 +245,33 @@ def control_by_state(state):
     global cpu_policy_path
 
     if state:
-        with open(os.path.join(cpu_policy_path, "scaling_max_freq"), "w") as f:
-            f.write(default_cpu_freq_max)
-        print(f"cpu freq max: {default_cpu_freq_max}")
-
-        with open(os.path.join(usb_driver_path, "bind"), "w") as f:
-            f.write(kb_device_id)
+        if not DISABLE_CPU_MIN_FREQ:
+            with open(os.path.join(cpu_policy_path, "scaling_max_freq"), "w") as f:
+                f.write(default_cpu_freq_max)
+            print(f"cpu freq max: {default_cpu_freq_max}")
+            with open(os.path.join(cpu_policy_path, "scaling_min_freq"), "w") as f:
+                f.write(default_cpu_freq_min)
+            print(f"cpu freq min: {default_cpu_freq_min}")
+        if not DISABLE_POWER_OFF_KB:
+            with open(os.path.join(usb_driver_path, "bind"), "w") as f:
+                f.write(kb_device_id)
+            print("kb power state: bind")
         with open(os.path.join(kb_device_path, "power/control"), "w") as f:
             f.write("on")
-        print("kb power state: bind")
     else:
         with open(os.path.join(kb_device_path, "power/control"), "w") as f:
             f.write("auto")
-        with open(os.path.join(usb_driver_path, "unbind"), "w") as f:
-            f.write(kb_device_id)
-        print("kb power state: unbind")
-
-        with open(os.path.join(cpu_policy_path, "scaling_max_freq"), "w") as f:
-            f.write(default_cpu_freq_min)
-        print(f"cpu freq max: {default_cpu_freq_min}")
+        if not DISABLE_POWER_OFF_KB:
+            with open(os.path.join(usb_driver_path, "unbind"), "w") as f:
+                f.write(kb_device_id)
+            print("kb power state: unbind")
+        if not DISABLE_CPU_MIN_FREQ:
+            with open(os.path.join(cpu_policy_path, "scaling_min_freq"), "w") as f:
+                f.write(saving_cpu_freq_min)
+            print(f"cpu freq min: {saving_cpu_freq_min}")
+            with open(os.path.join(cpu_policy_path, "scaling_max_freq"), "w") as f:
+                f.write(saving_cpu_freq_max)
+            print(f"cpu freq max: {saving_cpu_freq_max}")
 
 
 backlight_path = find_backlight()
@@ -278,13 +294,24 @@ with open(os.path.join(kb_device_path, "power/autosuspend_delay_ms"), "w") as f:
     f.write("0")
     print(f"{kb_device_path}/power/autosuspend_delay_ms = 0")
 
-with open(os.path.join(cpu_policy_path, "cpuinfo_max_freq"), "r") as f:
-    default_cpu_freq_max = f.read().strip()
-    print(f"default_cpu_freq_max: {default_cpu_freq_max}")
+if not SAVING_CPU_FREQ:
+    with open(os.path.join(cpu_policy_path, "cpuinfo_min_freq"), "r") as f:
+        saving_cpu_freq_min = f.read().strip()
+        saving_cpu_freq_max = saving_cpu_freq_min
+else:
+    saving_cpu_freq_min, saving_cpu_freq_max = SAVING_CPU_FREQ.split(",")
+    saving_cpu_freq_min = f"{saving_cpu_freq_min}000"
+    saving_cpu_freq_max = f"{saving_cpu_freq_max}000"
+print(f"saving_cpu_freq_min: {saving_cpu_freq_min}")
+print(f"saving_cpu_freq_max: {saving_cpu_freq_max}")
 
-with open(os.path.join(cpu_policy_path, "cpuinfo_min_freq"), "r") as f:
+with open(os.path.join(cpu_policy_path, "scaling_min_freq"), "r") as f:
     default_cpu_freq_min = f.read().strip()
     print(f"default_cpu_freq_min: {default_cpu_freq_min}")
+
+with open(os.path.join(cpu_policy_path, "scaling_max_freq"), "r") as f:
+    default_cpu_freq_max = f.read().strip()
+    print(f"default_cpu_freq_max: {default_cpu_freq_max}")
 
 backlight_bl_path = os.path.join(backlight_path, "bl_power")
 with open(backlight_bl_path, "r") as f:
@@ -330,6 +357,33 @@ while True:
 
 EOF
 
+cat << 'EOF' > uconsole-sleep/etc/uconsole-sleep/config.default
+###########################################################################
+#                    uConsole-Sleep configuration file                    #
+###########################################################################
+
+### HOLD_TRIGGER_SEC --- [0.0~] --- Time(sec) to trigger power interactive
+# default 0.7
+#HOLD_TRIGGER_SEC=1.3
+
+### SAVING_CPU_FREQ --- [100,100~] <min,max> --- Freq(MHz) for power saving
+# default 100,100 (depends on cpuinfo)
+#SAVING_CPU_FREQ=300,600
+
+### DISABLE_POWER_OFF_DRM --- [yes/no] --- Disable turn off DRM on sleep
+###  - If you have some issue with recover screen, you can set this "yes"
+# default no
+#DISABLE_POWER_OFF_DRM=yes
+
+### DISABLE_POWER_OFF_KB --- [yes/no] --- Disable turn off Keyboard on sleep
+###  - If you set this to "yes", the keyboard can turn on/off the light.
+# default no
+#DISABLE_POWER_OFF_KB=yes
+
+### DISABLE_CPU_MIN_FREQ --- [yes/no] --- Disable set cpu freq max to min
+# default no
+#DISABLE_CPU_MIN_FREQ=yes
+EOF
 
 cat << 'EOF' > uconsole-sleep/etc/systemd/system/sleep-power-control.service
 [Unit]
@@ -337,6 +391,7 @@ Description=Sleep Power Control Based on Display and Sleep State
 After=basic.target
 
 [Service]
+EnvironmentFile=/etc/uconsole-sleep/config
 ExecStart=/usr/local/bin/sleep_power_control
 Restart=always
 User=root
@@ -354,6 +409,7 @@ Description=Sleep Remap PowerKey
 After=basic.target
 
 [Service]
+EnvironmentFile=/etc/uconsole-sleep/config
 ExecStartPre=/sbin/modprobe uinput
 ExecStart=/usr/local/bin/sleep_remap_powerkey
 Restart=always
@@ -381,6 +437,8 @@ sed -i "s|ENV_VERSION|$ENV_VERSION|g" uconsole-sleep/DEBIAN/control
 
 cat << 'EOF' > uconsole-sleep/DEBIAN/postinst
 #!/bin/bash
+
+cp -n /etc/uconsole-sleep/config.default /etc/uconsole-sleep/config
 
 systemctl daemon-reload
 
@@ -423,6 +481,7 @@ python3 -m pip install --no-cache-dir "python-uinput>=1.0.0"
 pyinstaller -F --distpath usr/local/bin/ usr/local/src/uconsole-sleep/sleep_power_control.py
 pyinstaller -F --hidden-import=_libsuinput --distpath usr/local/bin/ usr/local/src/uconsole-sleep/sleep_remap_powerkey.py
 
+chmod +x etc/uconsole-sleep/*
 chmod +x usr/local/bin/*
 chmod +x DEBIAN/*
 
