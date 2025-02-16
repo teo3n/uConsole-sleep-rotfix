@@ -36,6 +36,7 @@ jobs:
         tag: live
         overwrite: true
         prerelease: true
+        make_latest: true
     - name: Build package
       if: startsWith(github.ref, 'refs/tags/')
       uses: pguyot/arm-runner-action@v2
@@ -62,3 +63,4 @@ jobs:
         tag: ${{ github.ref }}
         overwrite: true
         draft: true
+        make_latest: true
