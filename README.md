@@ -22,4 +22,4 @@ Detects power key events and controls the screen power.
 Manages power-saving operations based on screen status.
 
 **More Details**
-https://forum.clockworkpi.com/t/uconsole-sleep-v1-0
+[on forum.clockworkpi.com](https://forum.clockworkpi.com/t/uconsole-sleep-v1-2/15612?u=paragonnov)
