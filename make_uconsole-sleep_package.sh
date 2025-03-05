@@ -35,19 +35,32 @@ def find_drm_panel():
 
     for panel in os.listdir(DRM_PATH):
         panel_path = os.path.join(DRM_PATH, panel)
-        connector_id_path = os.path.join(panel_path, "connector_id")
 
-        if os.path.isfile(connector_id_path):
-            with open(connector_id_path, "r") as f:
-                connector_id = f.read().strip()
-
-            if connector_id == "48":
-                return panel_path
+        if "DSI" in panel:
+            return panel_path
 
     return ""
 
 if __name__ == "__main__":
     print(find_drm_panel())
+EOF
+
+cat << 'EOF' > uconsole-sleep/usr/local/src/uconsole-sleep/find_power_key.py
+import os
+
+def find_power_key():
+    EVENT_PATH = "/dev/input/by-path"
+
+    for evt in os.listdir(EVENT_PATH):
+        pwr_evt_path = os.path.join(EVENT_PATH, evt)
+
+        if "axp221-pek" in evt:
+            return pwr_evt_path
+
+    return ""
+
+if __name__ == "__main__":
+    print(find_power_key())
 EOF
 
 cat << 'EOF' > uconsole-sleep/usr/local/src/uconsole-sleep/find_framebuffer.py
@@ -173,10 +186,11 @@ import uinput
 import threading
 from time import time
 
+from find_power_key import find_power_key
 from sleep_display_control import toggle_display
 
 
-EVENT_DEVICE = "/dev/input/event0"
+EVENT_DEVICE = find_power_key()
 KEY_POWER = 116
 HOLD_TRIGGER_SEC = float(os.environ.get("HOLD_TRIGGER_SEC") or 0.7)
 
