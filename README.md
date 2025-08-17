@@ -28,6 +28,3 @@ Manages power-saving operations based on screen status.
 
 **More Details**
 [on forum.clockworkpi.com](https://forum.clockworkpi.com/t/uconsole-sleep-v1-2/15612?u=paragonnov)
-
-
-<a href="https://www.buymeacoffee.com/paragonnov" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-red.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
