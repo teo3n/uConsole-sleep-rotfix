@@ -1,5 +1,7 @@
 #!/bin/bash
 
+ENV_VERSION=${ENV_VERSION:-"1.3.1"}
+
 mkdir -p uconsole-sleep/DEBIAN
 mkdir -p uconsole-sleep/usr/local/bin
 mkdir -p uconsole-sleep/usr/local/src/uconsole-sleep
@@ -107,6 +109,8 @@ EOF
 
 cat << 'EOF' > uconsole-sleep/usr/local/src/uconsole-sleep/sleep_display_control.py
 import os
+import subprocess
+import time
 import uinput
 from find_drm_panel import find_drm_panel
 from find_framebuffer import find_framebuffer
@@ -136,6 +140,54 @@ uinput_device = uinput.Device([uinput.KEY_SLEEP, uinput.KEY_WAKEUP])
 
 status_path = os.path.join(backlight_path, "bl_power")
 
+def apply_rotation():
+    """Apply rotation to display"""
+    try:
+        result = subprocess.run(['who'], capture_output=True, text=True, timeout=3)
+        for line in result.stdout.split('\n'):
+            if ':0' in line:
+                parts = line.split()
+                if len(parts) > 0:
+                    username = parts[0]
+                    home_dir = f"/home/{username}" if username != "root" else "/root"
+                    
+                    env = os.environ.copy()
+                    env['DISPLAY'] = ':0'
+                    env['XAUTHORITY'] = f"{home_dir}/.Xauthority"
+                    
+                    result = subprocess.run(['xrandr', '--output', 'DSI-1', '--rotate', 'right'],
+                                         env=env, timeout=3)
+                    if result.returncode == 0:
+                        print("Applied rotation to DSI-1")
+                        return True
+                    break
+                        
+    except Exception as e:
+        print(f"Failed to apply rotation: {e}")
+    
+    return False
+
+def close_display_settings():
+    """Close the display settings window. This is very hacky, but works"""
+    try:
+        # kill any display settings processes
+        subprocess.run(['pkill', '-f', 'xfce4-display-settings'], timeout=2)
+        subprocess.run(['pkill', '-f', 'gnome-control-center'], timeout=2)
+
+        # close the window
+        try:
+            result = subprocess.run(['wmctrl', '-l'], capture_output=True, text=True, timeout=2)
+            if result.returncode == 0:
+                for line in result.stdout.split('\n'):
+                    if 'display' in line.lower() or 'screen' in line.lower():
+                        window_id = line.split()[0]
+                        subprocess.run(['wmctrl', '-ic', window_id], timeout=2)
+        except:
+            pass
+            
+    except Exception as e:
+        print(f"Error closing display settings: {e}")
+
 def toggle_display():
     global drm_panel_path
     global framebuffer_path
@@ -148,17 +200,32 @@ def toggle_display():
             screen_state = f.read().strip()
 
         if screen_state == "4":
-            #on
+            # wake up
+            print("Display waking up...")
+            
             with open(os.path.join(framebuffer_path, "blank"), "w") as f:
                 f.write("0")
             with open(os.path.join(backlight_path, "bl_power"), "w") as f:
                 f.write("0")
+            
+            uinput_device.emit_click(uinput.KEY_WAKEUP)
+            
             if not DISABLE_POWER_OFF_DRM:
+                time.sleep(0.1)
                 with open(os.path.join(drm_panel_path, "status"), "w") as f:
                     f.write("detect")
-            uinput_device.emit_click(uinput.KEY_WAKEUP)
+                
+                time.sleep(0.3)
+                apply_rotation()
+                
+                time.sleep(0.2)
+                close_display_settings()
+            
         else:
-            #off
+            # sleep
+            print("Display going to sleep...")
+            
+            # Turn off display
             if not DISABLE_POWER_OFF_DRM:
                 with open(os.path.join(drm_panel_path, "status"), "w") as f:
                     f.write("off")
