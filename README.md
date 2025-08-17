@@ -2,7 +2,7 @@
 
 ### NOTE: Rotation Fix
 
-This is a relatively quick and hacky way of fixing the display being rotated wrong upon wake. Basically, this version sets the rotation and kills any display setting windows. Are there better ways? Sure. Do I want to spend any time on this? No. Otherwise this works identically to the original. This is based on the v1.3 of the original.
+This is a relatively quick and hacky way of fixing the display being rotated wrong upon wake, specifically made for Debian Bookworm running XFCE on X11. Nothing else has been tested. Basically, this version sets the rotation and kills any display setting windows. Are there better ways? Sure. Do I want to spend any time on this? No. Otherwise this works identically to the original (v1.3).
 
 ### uConsole Sleep service package
 
